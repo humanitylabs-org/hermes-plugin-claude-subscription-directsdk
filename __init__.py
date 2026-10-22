@@ -84,6 +84,7 @@ profile = ClaudeOAuthDirectSDKProfile(
     description='Claude Subscription DirectSDK (Experimental) (Claude Pro/Max subscription via your Claude Code login; Hermes owns tools)',
     api_mode='chat_completions',
     auth_type='external_process',
+    supports_streaming=True,
     supports_health_check=False,
     native_reasoning_details_type='claude-subscription-directsdk-experimental.native_assistant',
     env_vars=(),
