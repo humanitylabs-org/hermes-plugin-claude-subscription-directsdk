@@ -87,6 +87,29 @@ def _subscription_token():
     """
     from agent.anthropic_credentials import is_claude_code_token_valid, read_claude_code_credentials
     token = os.environ.get('CLAUDE_CODE_OAUTH_TOKEN', '').strip()
+    root = os.environ.get('CLAUDE_SUBSCRIPTION_DIRECTSDK_CONFIG_DIR') or os.environ.get('CLAUDE_CONFIG_DIR')
+    if root:
+        import json
+        from pathlib import Path
+        try:
+            from .account_inventory import Inventory
+        except ImportError:
+            from account_inventory import Inventory
+        try:
+            if token and (Path(root) / 'accounts.json').exists():
+                return None, 'app-owned login refuses an unrelated token override'
+            if token:
+                return token, None
+            for directory in Inventory.directories(root):
+                try:
+                    creds = json.loads((Path(directory) / '.credentials.json').read_text()).get('claudeAiOauth')
+                    if creds and creds.get('accessToken') and is_claude_code_token_valid(creds):
+                        return creds['accessToken'], None
+                except (OSError, ValueError, TypeError, AttributeError):
+                    continue
+        except (OSError, ValueError):
+            pass
+        return None, 'connect or reconnect Claude in the Claude connection app'
     if token:
         return token, None
     creds = read_claude_code_credentials()
@@ -100,6 +123,7 @@ def _subscription_token():
 
 
 class ClaudeOAuthDirectSDKProfile(ProviderProfile):
+    app_owned_login_contract = 'wizard.app-owned-claude/1'
     model_metadata = MODEL_METADATA
 
     def get_model_context_length(self, model):
